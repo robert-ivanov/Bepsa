@@ -1,9 +1,7 @@
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
-  const DINELCO_BASE = 'https://dev-sgwf-01.bepsa.com.py';// set this in Vercel env vars
-
-  const response = await fetch(`${DINELCO_BASE}/d/api/checkout-session`, {
+  const response = await fetch(`https://dev-sgwf-01.bepsa.com.py/dinelco-checkout/api/v1/checkout-session`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
