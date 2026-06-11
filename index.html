@@ -1,66 +1,31 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>My Store - Checkout</title>
-
-<style>
-    .checkout-container {
-        max-width: 1000px;
-        margin: 0 auto;
-        padding: 20px;
-    }
-
-    .checkout-iframe {
-        width: 100%;
-        height: 680px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-    }
-
-    @media (max-width: 768px) {
-        .checkout-iframe {
-            height: 600px;
-        }
-    }
-</style>
-
-</head>
-
-<body>
-
-<section class="checkout-container">
-    <h1>Complete Purchase</h1>
-
-    <iframe
-        id="dinelcoCheckout"
-        name="dinelcoCheckout"
-        class="checkout-iframe"
-        title="Dinelco Checkout">
-    </iframe>
-
-    <form
-        id="checkoutForm"
-        method="POST"
-        target="dinelcoCheckout"
-        action="/api/validate"
-        style="display: none;">
-
-        <input
-            type="hidden"
-            name="JWT"
-            value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzZXNzaW9uSWQiOjEwNDAyLCJtZXJjaGFudElkIjoxLCJpYXQiOjE3ODExNjU4NzYsImV4cCI6MTc4MTE2NjQ3NiwiaXNzIjoiZGluZWxjby5jaGVja291dC5jb20ucHkifQ.0192DwanSuYjB3OeYX4AYXh3HssDxdC3kqr0_qQJLDQ" />
-
-    </form>
-</section>
-
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        document.getElementById('checkoutForm').submit();
-        console.log('Checkout initialized with static integrity token');
-    });
-</script>
+  document.addEventListener('DOMContentLoaded', async function () {
+    const orderData = {
+      clientReferenceId: "vkg_ds3",
+      amount: 120000,
+      currency: "PYG",
+      customer: {
+        customerId: "CUST-12345",
+        name: "Fernando",
+        lastname: "López",
+        email: "fernando.lopez@email.com",
+        phone: "+595991000000"
+      }
+    };
 
-</body>
-</html>
+    const res = await fetch('/api/create-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(orderData)
+    });
+
+    const { integrityToken } = await res.json();
+
+    if (integrityToken) {
+      document.querySelector('input[name="JWT"]').value = integrityToken;
+      document.getElementById('checkoutForm').submit();
+    } else {
+      console.error('Failed to get token');
+    }
+  });
+</script>
