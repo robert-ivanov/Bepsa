@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Store - Checkout</title>
+<style>
+        .checkout-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+ 
+        .checkout-iframe {
+            width: 100%;
+            height: 680px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+ 
+        @media (max-width: 768px) {
+            .checkout-iframe {
+                height: 600px;
+            }
+        }
+</style>
+</head>
+<body>
+<section class="checkout-container">
+<h1>Complete Purchase</h1>
+ 
+        <!-- Iframe where the checkout will be displayed -->
+<iframe
+            id="dinelcoCheckout"
+            allow="payment"
+            name="dinelcoCheckout"
+            class="checkout-iframe"
+            title="Dinelco Checkout">
+</iframe>
+ 
+        <!-- Hidden form to send the token -->
+<form
+            id="checkoutForm"
+            method="POST"
+            target="dinelcoCheckout"
+            style="display: none;">
+<input type="hidden" name="JWT" id="integrityToken">
+</form>
+</section>
+ 
+    <script>
+ 
+        // URL where the token will be validated
+        const validateUrl = "https://dev-sgwf-01.bepsa.com.py/d/api/checkout-session/validate";
+ 
+        // Function to get the token from your backend
+        async function getIntegrityToken(orderData) {
+            try {
+                const response = await fetch('https://dev-sgwf-01.bepsa.com.py/dinelco-checkout/api/v1/checkout-session', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer di_sk_b063d3ab144a606d8bc31e9de60ef5d8c54d9128f0209635_353cc09b',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(orderData)
+                });
+ 
+                if (!response.ok) {
+                    throw new Error(`HTTP Error: ${response.status}`);
+                }
+ 
+                const data = await response.json();
+                return data.integrityToken;
+ 
+            } catch (error) {
+                console.error('Error getting token:', error);
+                return null;
+            }
+        }
+ 
+        // Function to initialize checkout with the token
+        function initCheckout(integrityToken) {
+            if (!integrityToken) {
+                console.error('Integrity token is required');
+                return;
+            }
+ 
+            // Inject token into the hidden form
+            document.getElementById('integrityToken').value = integrityToken;
+ 
+            // Configure form destination
+            document.getElementById('checkoutForm').action = validateUrl;
+ 
+            // Submit form to iframe
+            document.getElementById('checkoutForm').submit();
+ 
+            console.log('Checkout started successfully');
+        }
+ 
+        // Initialize checkout when the page is ready
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('Getting session token...');
+ 
+            // Order data that you will send to your backend
+            const orderData = {
+                clientReferenceId: "vkg_ds10",
+                amount: 1000,
+                currency: "PYG",
+                "targetOrigin": "https://index-iota-orpin.vercel.app",
+                "returnUrl": "https://your-domain.com/payment-status",
+                "callbackUrl": "https://webhook.site/2912a6be-167e-49d6-a9bc-a53e63e01fc4",
+                "lineItems": [
+                 {
+                      "name": "Product 1",
+                      "description": "Product 1",
+                      "price": 100000,
+                      "quantity": 1,
+                      "img": "https://example.com/image.jpg"
+                      }
+                ],
+                metadata: {
+                    orderId: "ORD-010"
+                 },
+                customer: {
+                    customerId: "CUST-12345",
+                    name: "Fernando",
+                    lastname: "López",
+                    email: "fernando.lopez@email.com",
+                    phone: "+595991000000"
+                }
+            };
+ 
+            const token = await getIntegrityToken(orderData);
+ 
+            if (token) {
+                console.log('Token obtained, starting checkout...');
+                initCheckout(token);
+            } else {
+                console.error('❌ Could not obtain session token');
+                alert('Error initializing checkout. Please try again.');
+            }
+        });
+</script>
+</body>
+</html>
+
+
