@@ -4,30 +4,23 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>My Store - Checkout</title>
-
 <style>
     .checkout-container {
         max-width: 1000px;
         margin: 0 auto;
         padding: 20px;
     }
-
     .checkout-iframe {
         width: 100%;
         height: 680px;
         border: 1px solid #ddd;
         border-radius: 4px;
     }
-
     @media (max-width: 768px) {
-        .checkout-iframe {
-            height: 600px;
-        }
+        .checkout-iframe { height: 600px; }
     }
 </style>
-
 </head>
-
 <body>
 
 <section class="checkout-container">
@@ -40,71 +33,99 @@
         title="Dinelco Checkout">
     </iframe>
 
+    <!-- No action here — it gets set dynamically before submit -->
     <form
         id="checkoutForm"
         method="POST"
         target="dinelcoCheckout"
-        action="/api/validate"
         style="display: none;">
-
         <input type="hidden" name="JWT" id="integrityToken" value="" />
-
     </form>
 </section>
 
 <script>
-  document.addEventListener('DOMContentLoaded', async function () {
-    const orderData = {
-      clientReferenceId: "vkg_ds10",
-      amount: 1000,
-      currency: "PYG",
-      targetOrigin: "https://bepsa.vercel.app",
-      returnUrl: "https://your-domain.com/payment-status",
-      callbackUrl: "https://webhook.site/2912a6be-167e-49d6-a9bc-a53e63e01fc4",
-      lineItems: [
-        {
-          name: "Product 1",
-          description: "Product 1",
-          price: 100000,
-          quantity: 1,
-          img: "https://example.com/image.jpg"
+    const validateUrl = "https://dev-sgwf-01.bepsa.com.py/d/api/checkout-session/validate";
+
+    function initCheckout(integrityToken) {
+        if (!integrityToken) {
+            console.error('Integrity token is required');
+            return;
         }
-      ],
-      metadata: {
-        orderId: "ORD-010"
-      },
-      customer: {
-        customerId: "CUST-12345",
-        name: "Fernando",
-        lastname: "López",
-        email: "fernando.lopez@email.com",
-        phone: "+595991000000"
-      }
-    };
-
-    try {
-      const res = await fetch('/api/create-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderData)
-      });
-
-      const data = await res.json();
-      const integrityToken = data.integrityToken;
-
-      if (integrityToken) {
+        // Set the token
         document.getElementById('integrityToken').value = integrityToken;
+        // Set the action to Dinelco's validate URL directly
+        document.getElementById('checkoutForm').action = validateUrl;
+        // Submit form into the iframe
         document.getElementById('checkoutForm').submit();
-        console.log('Checkout initialized with fresh token');
-      } else {
-        console.error('No integrityToken in response:', data);
-        alert('Error initializing checkout. Please try again.');
-      }
-    } catch (err) {
-      console.error('Failed to fetch session token:', err);
-      alert('Error initializing checkout. Please try again.');
+        console.log('Checkout started successfully');
     }
-  });
+
+    document.addEventListener('DOMContentLoaded', async function () {
+        const orderData = {
+            clientReferenceId: "vkg_ds10",
+            amount: 1000,
+            currency: "PYG",
+            targetOrigin: "https://bepsa.vercel.app",
+            returnUrl: "https://bepsa.vercel.app/payment-status",
+            callbackUrl: "https://webhook.site/2912a6be-167e-49d6-a9bc-a53e63e01fc4",
+            lineItems: [
+                {
+                    name: "Product 1",
+                    description: "Product 1",
+                    price: 100000,
+                    quantity: 1,
+                    img: "https://example.com/image.jpg"
+                }
+            ],
+            metadata: { orderId: "ORD-010" },
+            customer: {
+                customerId: "CUST-12345",
+                name: "Fernando",
+                lastname: "López",
+                email: "fernando.lopez@email.com",
+                phone: "+595991000000"
+            }
+        };
+
+        try {
+            const res = await fetch('/api/create-session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(orderData)
+            });
+
+            const data = await res.json();
+            console.log('Session response:', data);
+
+            if (data.integrityToken) {
+                initCheckout(data.integrityToken);
+            } else {
+                console.error('No integrityToken in response:', data);
+                alert('Error initializing checkout. Please try again.');
+            }
+        } catch (err) {
+            console.error('Failed to fetch session token:', err);
+            alert('Error initializing checkout. Please try again.');
+        }
+    });
+
+    // Listen for payment result messages from Dinelco iframe
+    window.addEventListener('message', function (event) {
+        if (event.origin !== 'https://dev-sgwf-01.bepsa.com.py') return;
+
+        console.log('Payment event received:', event.data);
+
+        switch (event.data.paymentStatus) {
+            case 'payment.success':
+                console.log('Payment successful!');
+                // TODO: redirect or show success UI
+                break;
+            case 'payment.failed':
+                console.log('Payment failed.');
+                // TODO: show error UI
+                break;
+        }
+    });
 </script>
 
 </body>
